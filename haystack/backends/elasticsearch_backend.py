@@ -114,6 +114,8 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
         self.log = logging.getLogger('haystack')
         self.setup_complete = False
         self.existing_mapping = {}
+        self.supplied_mapping = connection_options.get('INDEX_MAPPINGS', {})
+        self.dynamic_mappings = connection_options.get('INDEX_DYNAMIC_MAPPINGS', False)
 
     def setup(self):
         """
@@ -122,6 +124,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
         # Get the existing mapping & cache it. We'll compare it
         # during the ``update`` & if it doesn't match, we'll put the new
         # mapping.
+        if self.dynamic_mappings:
+            self.setup_complete = True
+            return
+
         try:
             self.existing_mapping = self.conn.indices.get_mapping(index=self.index_name)
         except NotFoundError:
@@ -130,13 +136,17 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
             if not self.silently_fail:
                 raise
 
-        unified_index = haystack.connections[self.connection_alias].get_unified_index()
-        self.content_field_name, field_mapping = self.build_schema(unified_index.all_searchfields())
-        current_mapping = {
-            'modelresult': {
-                'properties': field_mapping,
+        if self.supplied_mapping:
+            current_mapping = self.supplied_mapping
+        else:
+            unified_index = haystack.connections[self.connection_alias].get_unified_index()
+            self.content_field_name, field_mapping = self.build_schema(unified_index.all_searchfields())
+
+            current_mapping = {
+                'modelresult': {
+                    'properties': field_mapping,
+                }
             }
-        }
 
         if current_mapping != self.existing_mapping:
             try:
