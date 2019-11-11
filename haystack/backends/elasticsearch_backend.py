@@ -137,16 +137,16 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 raise
 
         if self.supplied_mapping:
-            current_mapping = self.supplied_mapping
+            field_mapping = self.supplied_mapping
         else:
             unified_index = haystack.connections[self.connection_alias].get_unified_index()
             self.content_field_name, field_mapping = self.build_schema(unified_index.all_searchfields())
 
-            current_mapping = {
-                'modelresult': {
-                    'properties': field_mapping,
-                }
+        current_mapping = {
+            'modelresult': {
+                'properties': field_mapping,
             }
+        }
 
         if current_mapping != self.existing_mapping:
             try:
