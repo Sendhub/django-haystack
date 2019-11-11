@@ -154,7 +154,8 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 self.conn.indices.create(index=self.index_name, body=self.DEFAULT_SETTINGS, ignore=400)
                 self.conn.indices.put_mapping(index=self.index_name, doc_type='modelresult', body=current_mapping)
                 self.existing_mapping = current_mapping
-            except Exception:
+            except Exception as e:
+                self.log.error("Failed to create mappings in Elasticsearch, Exception: %s", e)
                 if not self.silently_fail:
                     raise
 
